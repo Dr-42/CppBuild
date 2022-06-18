@@ -111,8 +111,8 @@ def build_objects(source_dir, obj_dir):
     get_srcs(source_dir)
     for src in srcs:
         compile = False
-        obj = srcs[src].replace('.cpp', '.o')
-        obj = obj.replace(source_dir, obj_dir)
+        obj = srcs[src].split('/')[-1].replace('.cpp', '.o')
+        obj = obj_dir + '/' + obj
         objs[src] = obj
         parse_for_includes(srcs[src])
         if check_file_updated(srcs[src]):
