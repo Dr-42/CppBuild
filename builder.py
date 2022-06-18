@@ -7,6 +7,10 @@ obj_dir = 'obj'
 src_dir = 'src'
 libs = '-lm -lglfw -lGL -lGLEW -lassimp'
 
+##########################################
+##### DO NOT EDIT BELOW THIS LINE ########
+##########################################
+
 # Global variables
 srcs = {}
 objs = {}
@@ -42,33 +46,52 @@ def load_md5():
             md5s[key] = value
     
 #Checks if file has been updated
-def check_file_updated(filename):
-    with open(filename, 'rb') as f:
+def check_file_updated(long_filename):
+    with open(long_filename, 'rb') as f:
         contents = f.read()
     md5 = hashlib.md5(contents).hexdigest()
-    if filename in md5s.keys():
-        if md5s[filename] == md5:
-            print('File not updated: ' + filename)
+    if long_filename in md5s.keys():
+        if md5s[long_filename] == md5:
+            print('File not updated: ' + long_filename)
             return False
         else:
-            print('File updated: ' + filename)
-            if (not filename in md5s_to_update.keys()) and (filename in md5s.keys()):
-                md5s_to_update[filename] = md5
+            print('File updated: ' + long_filename)
+            if (not long_filename in md5s_to_update.keys()) and (long_filename in md5s.keys()):
+                md5s_to_update[long_filename] = md5
             return True
     else:
-        md5s[filename] = md5
-        print('File added: ' + filename)
+        md5s[long_filename] = md5
+        print('File added: ' + long_filename)
         return True
 
+#parses file for includes
+#outputs dictionary
+#src_incs = {'long_filename.cpp': ['include1', 'include2']}
+def parse_for_includes(long_filename):
+    with open(long_filename, 'r') as f:
+        for line in f:
+            if line.startswith('#include "'):
+                line = line.strip()
+                line = line.replace('#include', '')
+                line = line.replace('"', '')
+                line = line.replace('\n', '')
+                line = line.strip()
+                if long_filename not in src_incs.keys():
+                    src_incs[long_filename] = []
+                if line not in src_incs[long_filename]:
+                    src_incs[long_filename].append(line)
+
 #generates the include command for filepath
-def get_inc_cmd(filepath):
+def get_inc_cmd(long_filename):
     cmd = ''
     cmds = []
-    for inc in src_incs[filepath]:
-        c = '-I' + incs[inc]
+    for inc in src_incs[long_filename]:
+        incfile = inc.split('/')[-1]
+        incdir = incs[incfile].removesuffix(inc)
+        c = ' -I' + incdir
         if c not in cmds:
             cmds.append(c)
-            cmd += ' -I' + incs[inc]
+            cmd += c
     return cmd
 
 #gets the sources
@@ -81,7 +104,7 @@ def get_srcs(source_dir):
             if file.endswith('.cpp'):
                 srcs[file] = os.path.join(root, file)
             if file.endswith('.h'):
-                incs[file] = root
+                incs[file] = os.path.join(root, file)
 
 #builds obj files for source_dir into obj_dir
 def build_objects(source_dir, obj_dir):
@@ -96,8 +119,9 @@ def build_objects(source_dir, obj_dir):
             print('Compiling due to update to ' + srcs[src])
             compile = True
         for inc in src_incs[srcs[src]]:
-            if check_file_updated(incs[inc] + '/' + inc):
-                print('Compiling ' + srcs[src] + ' due to update to ' + incs[inc] + '/' + inc)
+            incfile = inc.split('/')[-1]
+            if check_file_updated(incs[incfile]):
+                print('Compiling ' + srcs[src] + ' due to update to ' + incs[incfile])
                 compile = True
 
         if compile:
@@ -113,25 +137,6 @@ def compile_obj(filepath, obj):
     global compiled_obj
     compiled_obj = True
 
-#parses file for includes
-def parse_for_includes(file):
-    with open(file, 'r') as f:
-        for line in f:
-            if line.startswith('#include "'):
-                line = line.strip()
-                line = line.replace('#include', '')
-                line = line.replace('"', '')
-                line = line.replace('\n', '')
-                line = line.strip()
-
-                if '/' in line:
-                    line = line.split('/')[-1]
-
-                if file not in src_incs.keys():
-                    src_incs[file] = []
-                if line not in src_incs[file]:
-                    src_incs[file].append(line)
-    
 #links obj files into bin
 def link():
     if not compiled_obj:
