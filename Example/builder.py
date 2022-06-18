@@ -85,13 +85,14 @@ def parse_for_includes(long_filename):
 def get_inc_cmd(long_filename):
     cmd = ''
     cmds = []
-    for inc in src_incs[long_filename]:
-        incfile = inc.split('/')[-1]
-        incdir = incs[incfile].removesuffix(inc)
-        c = ' -I' + incdir
-        if c not in cmds:
-            cmds.append(c)
-            cmd += c
+    if long_filename in src_incs.keys():
+        for inc in src_incs[long_filename]:
+            incfile = inc.split('/')[-1]
+            incdir = incs[incfile].removesuffix(inc)
+            c = ' -I' + incdir
+            if c not in cmds:
+                cmds.append(c)
+                cmd += c
     return cmd
 
 #gets the sources
@@ -109,6 +110,8 @@ def get_srcs(source_dir):
 #builds obj files for source_dir into obj_dir
 def build_objects(source_dir, obj_dir):
     get_srcs(source_dir)
+    if not os.path.exists(obj_dir):
+        os.system('mkdir ' + obj_dir)
     for src in srcs:
         compile = False
         obj = srcs[src].split('/')[-1].replace('.cpp', '.o')
@@ -118,12 +121,12 @@ def build_objects(source_dir, obj_dir):
         if check_file_updated(srcs[src]):
             print('Compiling due to update to ' + srcs[src])
             compile = True
-        for inc in src_incs[srcs[src]]:
-            incfile = inc.split('/')[-1]
-            if check_file_updated(incs[incfile]):
-                print('Compiling ' + srcs[src] + ' due to update to ' + incs[incfile])
-                compile = True
-
+        if srcs[src] in src_incs.keys():
+            for inc in src_incs[srcs[src]]:
+                incfile = inc.split('/')[-1]
+                if check_file_updated(incs[incfile]):
+                    print('Compiling ' + srcs[src] + ' due to update to ' + incs[incfile])
+                    compile = True
         if compile:
             compile_obj(srcs[src], obj)
 
@@ -139,6 +142,8 @@ def compile_obj(filepath, obj):
 
 #links obj files into bin
 def link():
+    if not os.path.exists(bin_dir):
+        os.system('mkdir ' + bin_dir)
     if not compiled_obj:
         print('Nothing to be compiled')
         return
