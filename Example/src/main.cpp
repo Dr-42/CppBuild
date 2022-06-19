@@ -2,7 +2,6 @@
 #include "utils/renderer.h"
 #include "utils/log.h"
 
-
 int main(){
     Renderer r;
     Log l;
