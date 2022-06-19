@@ -5,7 +5,7 @@ import os
 bin_dir = 'bin'
 obj_dir = 'obj'
 src_dir = 'src'
-libs = '-lm -lglfw -lGL -lGLEW -lassimp'
+libs = '-lm -lglfw -lGL -lGLEW'
 
 ##########################################
 ##### DO NOT EDIT BELOW THIS LINE ########
@@ -102,7 +102,7 @@ def get_inc_cmd(long_filename):
 def get_srcs(source_dir):
     for root, _, files in os.walk(source_dir):
         for file in files:
-            if file.endswith('.cpp'):
+            if file.endswith('.cpp') or file.endswith('.c'):
                 srcs[file] = os.path.join(root, file)
             if file.endswith('.h'):
                 incs[file] = os.path.join(root, file)
@@ -114,7 +114,10 @@ def build_objects(source_dir, obj_dir):
         os.system('mkdir ' + obj_dir)
     for src in srcs:
         compile = False
-        obj = srcs[src].split('/')[-1].replace('.cpp', '.o')
+        if srcs[src].endswith('.cpp'):
+            obj = srcs[src].split('/')[-1].replace('.cpp', '.o')
+        elif srcs[src].endswith('.c'):
+            obj = srcs[src].split('/')[-1].replace('.c', '.o')
         obj = obj_dir + '/' + obj
         objs[src] = obj
         parse_for_includes(srcs[src])
