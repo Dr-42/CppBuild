@@ -1,0 +1,5 @@
+src/main.cpp bbb5bf9f4a6a7400de1918bc80199c55
+src/include/utils/renderer.h 0e4cac7c258aaccfde95c90ebb345292
+src/include/utils/log.h 0e0cc374071698434d471c1e8d9fa188
+src/utils/log.cpp bf75d646a9900dac97c00c193ded189f
+src/utils/renderer.cpp 06ec079ce4208d127be124306d1b1bb0

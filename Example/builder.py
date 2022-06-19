@@ -1,5 +1,6 @@
 import hashlib
 import os
+from termcolor import colored
 
 # Directories
 bin_dir = 'bin'
@@ -34,7 +35,7 @@ def save_md5():
 # Loads md5s from file
 def load_md5():
     if not os.path.exists('md5.txt'):
-        print('creating md5.txt')
+        print(colored('[INFO] ', 'green'), 'Creating md5.txt')
         os.system('touch md5.txt')
         save_md5()
     with open('md5.txt', 'r') as f:
@@ -52,16 +53,16 @@ def check_file_updated(long_filename):
     md5 = hashlib.md5(contents).hexdigest()
     if long_filename in md5s.keys():
         if md5s[long_filename] == md5:
-            print('File not updated: ' + long_filename)
+            print(colored('[LOG] ', 'blue') ,'File not updated: ' + long_filename)
             return False
         else:
-            print('File updated: ' + long_filename)
+            print(colored('[INFO] ', 'yellow'), 'File updated: ' + long_filename)
             if (not long_filename in md5s_to_update.keys()) and (long_filename in md5s.keys()):
                 md5s_to_update[long_filename] = md5
             return True
     else:
         md5s[long_filename] = md5
-        print('File added: ' + long_filename)
+        print(colored('[LOG] ', 'green') ,'File added: ' + long_filename)
         return True
 
 #parses file for includes
@@ -122,13 +123,13 @@ def build_objects(source_dir, obj_dir):
         objs[src] = obj
         parse_for_includes(srcs[src])
         if check_file_updated(srcs[src]):
-            print('Compiling due to update to ' + srcs[src])
+            print(colored('[INFO] ', 'green'), 'Compiling ' + srcs[src])
             compile = True
         if srcs[src] in src_incs.keys():
             for inc in src_incs[srcs[src]]:
                 incfile = inc.split('/')[-1]
                 if check_file_updated(incs[incfile]):
-                    print('Compiling ' + srcs[src] + ' due to update to ' + incs[incfile])
+                    print(colored('[INFO] ', 'green'), 'Compiling ' + srcs[src] + ' due to update to ' + incs[incfile])
                     compile = True
         if compile:
             compile_obj(srcs[src], obj)
@@ -137,10 +138,10 @@ compiled_obj = False
 #compiles filepath.cpp to obj
 def compile_obj(filepath, obj):
     cmd = 'g++ -c -o ' + obj + ' ' + filepath + get_inc_cmd(filepath)
-    print(cmd)
+    print(colored('[LOG] ', 'blue') ,cmd)
     error_code = os.system(cmd)
     if error_code != 0:
-        print('Error compiling ' + filepath)
+        print(colored('[ERROR] ', 'red'), 'Error compiling ' + filepath)
         exit(error_code)
     global compiled_obj
     compiled_obj = True
@@ -150,7 +151,7 @@ def link():
     if not os.path.exists(bin_dir):
         os.system('mkdir ' + bin_dir)
     if not compiled_obj:
-        print('Nothing to be compiled')
+        print(colored('[LOG] ', 'blue') ,'Nothing to be compiled')
         return
     objtot = ''
     i = 0
@@ -158,10 +159,10 @@ def link():
         objtot += ' ' + objs[obj]
         i += 1
     cmd = 'g++ -o ' + bin_dir + '/' + 'main ' + objtot + ' ' + libs
-    print(cmd)
+    print(colored('[LOG] ', 'blue') ,cmd)
     error = os.system(cmd)
     if error != 0:
-        print('Error linking')
+        print(colored('[ERROR] ', 'red'), 'Error linking')
         exit(error)
 
 def clean():
@@ -180,10 +181,10 @@ def check_mode():
         elif os.sys.argv[1] == 'help':
             return 'help'
         else:
-            print('Unknown Command')
+            print(colored('[ERROR] ', 'red'), 'Unknown Command')
             exit(1)
     else:
-        print('Too many arguments')
+        print(colored('[ERROR] ', 'red'), 'Too many arguments')
 
 
 def usage():
@@ -195,7 +196,7 @@ def usage():
 
 def main():
     mode = check_mode()
-    print('DEBUG: ' + mode)
+    print(colored('[LOG] ', 'blue') ,'WORK MODE: ' + mode)
     if mode == 'build':
         load_md5()
         build_objects(src_dir, obj_dir)
@@ -213,7 +214,7 @@ def main():
     elif mode == 'help':
         usage()
     else:
-        print('Unknown Command')
+        print(colored('[ERROR] ', 'red'), 'Unknown Command')
         exit(1)
 
 if __name__=='__main__':
