@@ -138,8 +138,10 @@ compiled_obj = False
 def compile_obj(filepath, obj):
     cmd = 'g++ -c -o ' + obj + ' ' + filepath + get_inc_cmd(filepath)
     print(cmd)
-    os.system('pwd')
-    os.system(cmd)
+    error_code = os.system(cmd)
+    if error_code != 0:
+        print('Error compiling ' + filepath)
+        exit(error_code)
     global compiled_obj
     compiled_obj = True
 
@@ -157,7 +159,10 @@ def link():
         i += 1
     cmd = 'g++ -o ' + bin_dir + '/' + 'main ' + objtot + ' ' + libs
     print(cmd)
-    os.system(cmd)
+    error = os.system(cmd)
+    if error != 0:
+        print('Error linking')
+        exit(error)
 
 def clean():
     os.system('rm -rf bin/*')
