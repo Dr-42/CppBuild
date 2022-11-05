@@ -1,4 +1,6 @@
 import hashlib
+import subprocess
+import platform
 import os
 from termcolor import colored
 
@@ -6,7 +8,7 @@ from termcolor import colored
 bin_dir = 'bin'
 obj_dir = 'obj'
 src_dir = 'src'
-libs = '-lm -lglfw -lGL -lGLEW'
+libs = ''
 
 ##########################################
 ##### DO NOT EDIT BELOW THIS LINE ########
@@ -21,23 +23,45 @@ incs = {}
 bins = {}
 md5s_to_update = {}
 
+def run_ps(cmd):
+    completed = subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+    return completed
+     
 # Saves md5s to file
 def save_md5():
-    os.system('rm md5.txt && touch md5.txt')
+    if platform.system() == 'Windows': 
+        run_ps('Remove-Item md5.txt; New-Item md5.txt')
+    elif platform.system() == 'Linux':
+        os.system('rm md5.txt && touch md5.txt')
+    else:
+        print(colored('[ERROR] ', 'red'), 'Unsupported platform')
+
     for file in md5s.keys():
         if file in md5s_to_update.keys():
             md5s[file] = md5s_to_update[file]
     with open('md5n.txt', 'w') as f:
         for key in md5s:
             f.write(key + ' ' + md5s[key] + '\n')
-    os.system('rm md5.txt && mv md5n.txt md5.txt')
+    if platform.system() == 'Windows': 
+        run_ps('Remove-Item md5.txt; Rename-Item -Path md5n.txt -NewName md5.txt')
+    elif platform.system() == 'Linux':
+        os.system('rm md5.txt && mv md5n.txt md5.txt')
+    else:
+        print(colored('[ERROR] ', 'red'), 'Unsupported platform')
+
 
 # Loads md5s from file
 def load_md5():
     if not os.path.exists('md5.txt'):
         print(colored('[INFO] ', 'green'), 'Creating md5.txt')
-        os.system('touch md5.txt')
+        if platform.system() == 'Windows': 
+            run_ps('New-Item md5.txt')
+        elif platform.system() == 'Linux':
+            os.system('touch md5.txt')
+        else:
+            print(colored('[ERROR] ', 'red'), 'Unsupported platform')
         save_md5()
+
     with open('md5.txt', 'r') as f:
         for line in f:
             line = line.strip()
@@ -104,9 +128,15 @@ def get_srcs(source_dir):
     for root, _, files in os.walk(source_dir):
         for file in files:
             if file.endswith('.cpp') or file.endswith('.c'):
-                srcs[file] = os.path.join(root, file)
+                if platform.system() == 'Windows':
+                    srcs[file] = os.path.join(root, file).replace('\\', '/')
+                elif platform.system() == 'Linux':
+                    srcs[file] = os.path.join(root, file)
             if file.endswith('.h'):
-                incs[file] = os.path.join(root, file)
+                if platform.system() == 'Windows':
+                    incs[file] = os.path.join(root, file).replace('\\', '/')
+                elif platform.system() == 'Linux':
+                    incs[file] = os.path.join(root, file)
 
 #builds obj files for source_dir into obj_dir
 def build_objects(source_dir, obj_dir):
@@ -166,9 +196,16 @@ def link():
         exit(error)
 
 def clean():
-    os.system('rm -rf bin/*')
-    os.system('rm -rf obj/*.o')
-    os.system('rm -rf md5.txt')
+    if platform.system() == 'Windows':
+        run_ps('Remove-Item bin/*')
+        run_ps('Remove-Item obj/*.o')
+        run_ps('Remove-Item md5.txt')
+    elif platform.system() == 'Linux':
+        os.system('rm -rf bin/*')
+        os.system('rm -rf obj/*.o')
+        os.system('rm -rf md5.txt')
+    else:
+        print(colored('[ERROR] ', 'red'), 'Unsupported platform')
 
 def check_mode():
     if len(os.sys.argv) == 1:
