@@ -1,12 +1,16 @@
 import hashlib
+import subprocess
+import platform
 import os
 from termcolor import colored
 
 # Directories
+compiler = 'g++'
 bin_dir = 'bin'
 obj_dir = 'obj'
 src_dir = 'src'
-libs = '-lm -lglfw -lGL -lGLEW'
+libs    = '-lm'
+cflags  = '-g -std=c++17'
 
 ##########################################
 ##### DO NOT EDIT BELOW THIS LINE ########
@@ -21,23 +25,45 @@ incs = {}
 bins = {}
 md5s_to_update = {}
 
+def run_ps(cmd):
+    completed = subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+    return completed
+     
 # Saves md5s to file
 def save_md5():
-    os.system('rm md5.txt && touch md5.txt')
+    if platform.system() == 'Windows': 
+        run_ps('Remove-Item md5.txt; New-Item md5.txt')
+    elif platform.system() == 'Linux':
+        os.system('rm md5.txt && touch md5.txt')
+    else:
+        print(colored('[ERROR] ', 'red'), 'Unsupported platform')
+
     for file in md5s.keys():
         if file in md5s_to_update.keys():
             md5s[file] = md5s_to_update[file]
     with open('md5n.txt', 'w') as f:
         for key in md5s:
             f.write(key + ' ' + md5s[key] + '\n')
-    os.system('rm md5.txt && mv md5n.txt md5.txt')
+    if platform.system() == 'Windows': 
+        run_ps('Remove-Item md5.txt; Rename-Item -Path md5n.txt -NewName md5.txt')
+    elif platform.system() == 'Linux':
+        os.system('rm md5.txt && mv md5n.txt md5.txt')
+    else:
+        print(colored('[ERROR] ', 'red'), 'Unsupported platform')
+
 
 # Loads md5s from file
 def load_md5():
     if not os.path.exists('md5.txt'):
         print(colored('[INFO] ', 'green'), 'Creating md5.txt')
-        os.system('touch md5.txt')
+        if platform.system() == 'Windows': 
+            run_ps('New-Item md5.txt')
+        elif platform.system() == 'Linux':
+            os.system('touch md5.txt')
+        else:
+            print(colored('[ERROR] ', 'red'), 'Unsupported platform')
         save_md5()
+
     with open('md5.txt', 'r') as f:
         for line in f:
             line = line.strip()
@@ -104,9 +130,15 @@ def get_srcs(source_dir):
     for root, _, files in os.walk(source_dir):
         for file in files:
             if file.endswith('.cpp') or file.endswith('.c'):
-                srcs[file] = os.path.join(root, file)
+                if platform.system() == 'Windows':
+                    srcs[file] = os.path.join(root, file).replace('\\', '/')
+                elif platform.system() == 'Linux':
+                    srcs[file] = os.path.join(root, file)
             if file.endswith('.h'):
-                incs[file] = os.path.join(root, file)
+                if platform.system() == 'Windows':
+                    incs[file] = os.path.join(root, file).replace('\\', '/')
+                elif platform.system() == 'Linux':
+                    incs[file] = os.path.join(root, file)
 
 #builds obj files for source_dir into obj_dir
 def build_objects(source_dir, obj_dir):
@@ -137,14 +169,17 @@ def build_objects(source_dir, obj_dir):
 compiled_obj = False
 #compiles filepath.cpp to obj
 def compile_obj(filepath, obj):
-    cmd = 'g++ -c -o ' + obj + ' ' + filepath + get_inc_cmd(filepath)
+    cmd = compiler + ' ' + cflags + ' -c -o ' + obj + ' ' + filepath + get_inc_cmd(filepath)
     print(colored('[LOG] ', 'blue') ,cmd)
     error_code = os.system(cmd)
     if error_code != 0:
         print(colored('[ERROR] ', 'red'), 'Error compiling ' + filepath)
         exit(error_code)
-    global compiled_obj
-    compiled_obj = True
+    else:
+        print(colored('[LOG] ', 'green') ,'Compiled ' + filepath)
+        global compiled_obj
+        compiled_obj = True
+        save_md5()
 
 #links obj files into bin
 def link():
@@ -158,28 +193,47 @@ def link():
     for obj in objs:
         objtot += ' ' + objs[obj]
         i += 1
-    cmd = 'g++ -o ' + bin_dir + '/' + 'main ' + objtot + ' ' + libs
+    cmd = compiler + ' ' + cflags + ' -o ' + bin_dir + '/' + 'main ' + objtot + ' ' + libs
     print(colored('[LOG] ', 'blue') ,cmd)
     error = os.system(cmd)
     if error != 0:
         print(colored('[ERROR] ', 'red'), 'Error linking')
         exit(error)
+    else:
+        print(colored('[INFO] ', 'green'), 'Linking successful')
+        save_md5()
 
 def clean():
-    os.system('rm -rf bin/*')
-    os.system('rm -rf obj/*.o')
-    os.system('rm -rf md5.txt')
-
+    if platform.system() == 'Windows':
+        run_ps('Remove-Item bin/*')
+        print(colored('[LOG] ', 'yellow') ,'Removed bin/*')
+        run_ps('Remove-Item obj/*.o')
+        print(colored('[LOG] ', 'yellow') ,'Removed obj/*.o')
+        run_ps('Remove-Item md5.txt')
+        print(colored('[LOG] ', 'red') ,'Removed md5.txt')
+    elif platform.system() == 'Linux':
+        os.system('rm -rf bin/*')
+        print(colored('[LOG] ', 'yellow') ,'Removed bin/*')
+        os.system('rm -rf obj/*.o')
+        print(colored('[LOG] ', 'yellow') ,'Removed obj/*.o')
+        os.system('rm -rf md5.txt')
+        print(colored('[LOG] ', 'red') ,'Removed md5.txt')
+    else:
+        print(colored('[ERROR] ', 'red'), 'Unsupported platform')
 def check_mode():
     if len(os.sys.argv) == 1:
         return 'build'
     elif len(os.sys.argv) == 2:
-        if os.sys.argv[1] == 'clean':
+        if os.sys.argv[1] == '--clean' or os.sys.argv[1] == '-c':
             return 'clean'
-        elif os.sys.argv[1] == 'run':
+        elif os.sys.argv[1] == '--run' or os.sys.argv[1] == '-r':
             return 'run'
-        elif os.sys.argv[1] == 'help':
+        elif os.sys.argv[1] == '--help' or os.sys.argv[1] == '-h':
             return 'help'
+        elif os.sys.argv[1] == '--build' or os.sys.argv[1] == '-b':
+            return 'build'
+        elif os.sys.argv[1] == '--rebuild' or os.sys.argv[1] == '-rb':
+            return 'rebuild'
         else:
             print(colored('[ERROR] ', 'red'), 'Unknown Command')
             exit(1)
@@ -188,11 +242,15 @@ def check_mode():
 
 
 def usage():
-    print('Usage:')
-    print('  builder.py')
-    print('  builder.py clean')
-    print('  builder.py run')
-
+    print(colored('[HELP] :', 'green'), 'Usage:')
+    print(colored('[HELP] :', 'green'), 'To build the project:')
+    print(colored('    python builder.py ', 'yellow'), colored('or ', 'grey'), colored('python builder.py --build', 'yellow'), colored('or ', 'grey'), colored('python builder.py -b', 'yellow'))
+    print(colored('[HELP] :', 'green'), 'To clean the project:')
+    print(colored('    python builder.py --clean', 'yellow'), colored('or ', 'grey'), colored('python builder.py -c', 'yellow'))
+    print(colored('[HELP] :', 'green'), 'To run the project:')
+    print(colored('    python builder.py --run', 'yellow'), colored('or ', 'grey'), colored('python builder.py -r', 'yellow'))
+    print(colored('[HELP] :', 'green'), 'To rebuild the project:')
+    print(colored('    python builder.py --rebuild', 'yellow'), colored('or ', 'grey'), colored('python builder.py -rb', 'yellow'))
 
 def main():
     mode = check_mode()
@@ -201,7 +259,6 @@ def main():
         load_md5()
         build_objects(src_dir, obj_dir)
         link()
-        save_md5()
     elif mode == 'clean':
         clean()
     elif mode == 'run':
@@ -209,8 +266,15 @@ def main():
         build_objects(src_dir, obj_dir)
         link()
         print('=======PROGRAM OUTPUT========')
-        os.system(bin_dir + '/' + 'main')
-        save_md5()
+        if platform.system() == 'Windows':
+            os.system(bin_dir + '\\' + 'main.exe')
+        elif platform.system() == 'Linux':
+            os.system(bin_dir + '/' + 'main')
+    elif mode == 'rebuild':
+        clean()
+        load_md5()
+        build_objects(src_dir, obj_dir)
+        link()
     elif mode == 'help':
         usage()
     else:
@@ -219,3 +283,4 @@ def main():
 
 if __name__=='__main__':
     main()
+
