@@ -1,6 +1,8 @@
 import hashlib
 import subprocess
 import platform
+import subprocess
+import platform
 import os
 from termcolor import colored
 
@@ -25,6 +27,10 @@ incs = {}
 bins = {}
 md5s_to_update = {}
 
+def run_ps(cmd):
+    completed = subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+    return completed
+     
 def run_ps(cmd):
     completed = subprocess.run(["powershell", "-Command", cmd], capture_output=True)
     return completed
@@ -63,7 +69,6 @@ def load_md5():
         else:
             print(colored('[ERROR] ', 'red'), 'Unsupported platform')
         save_md5()
-
     with open('md5.txt', 'r') as f:
         for line in f:
             line = line.strip()
@@ -135,10 +140,7 @@ def get_srcs(source_dir):
                 elif platform.system() == 'Linux':
                     srcs[file] = os.path.join(root, file)
             if file.endswith('.h'):
-                if platform.system() == 'Windows':
-                    incs[file] = os.path.join(root, file).replace('\\', '/')
-                elif platform.system() == 'Linux':
-                    incs[file] = os.path.join(root, file)
+                incs[file] = os.path.join(root, file)
 
 #builds obj files for source_dir into obj_dir
 def build_objects(source_dir, obj_dir):
