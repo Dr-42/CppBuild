@@ -4,11 +4,17 @@ import platform
 import os
 from termcolor import colored
 
+# Output details
+
+out_file = 'main'
+out_type = 'exe'
 # Directories
-compiler = 'g++'
-bin_dir = 'bin'
+out_dir = 'bin'
 obj_dir = 'obj'
 src_dir = 'src'
+
+#Compiler options
+compiler = 'g++'
 libs    = '-lm'
 cflags  = '-g -std=c++17'
 
@@ -183,8 +189,8 @@ def compile_obj(filepath, obj):
 
 #links obj files into bin
 def link():
-    if not os.path.exists(bin_dir):
-        os.system('mkdir ' + bin_dir)
+    if not os.path.exists(out_dir):
+        os.system('mkdir ' + out_dir)
     if not compiled_obj:
         print(colored('[LOG] ', 'blue') ,'Nothing to be compiled')
         return
@@ -193,7 +199,7 @@ def link():
     for obj in objs:
         objtot += ' ' + objs[obj]
         i += 1
-    cmd = compiler + ' ' + cflags + ' -o ' + bin_dir + '/' + 'main ' + objtot + ' ' + libs
+    cmd = compiler + ' ' + cflags + ' -o ' + out_dir + '/' + out_file + '.' + out_type + objtot + ' ' + libs
     print(colored('[LOG] ', 'blue') ,cmd)
     error = os.system(cmd)
     if error != 0:
@@ -267,9 +273,9 @@ def main():
         link()
         print('=======PROGRAM OUTPUT========')
         if platform.system() == 'Windows':
-            os.system(bin_dir + '\\' + 'main.exe')
+            os.system(out_dir + '\\' + out_file + '.' + out_type)
         elif platform.system() == 'Linux':
-            os.system(bin_dir + '/' + 'main')
+            os.system(out_dir + '/' + out_file + '.' + out_type)
     elif mode == 'rebuild':
         clean()
         load_md5()
