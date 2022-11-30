@@ -6,10 +6,10 @@ from termcolor import colored
 
 # Output details
 
-out_file = 'main'
-out_type = 'exe'
+out_file = 'libr'
+out_type = 'dll'
 # Directories
-out_dir = 'bin'
+out_dir = '../bin'
 obj_dir = 'obj'
 src_dir = 'src'
 

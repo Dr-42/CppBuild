@@ -9,14 +9,17 @@ from termcolor import colored
 out_file = 'main'
 out_type = 'exe'
 # Directories
-out_dir = 'bin'
+out_dir = '../bin'
 obj_dir = 'obj'
 src_dir = 'src'
 
 #Compiler options
 compiler = 'g++'
-libs    = '-lm'
-cflags  = '-g -std=c++17'
+if platform.system() == 'Windows':
+    libs    = '-L../bin -llibr'
+elif platform.system() == 'Linux':
+    libs    = '../bin/libr.so'
+cflags  = '-g -std=c++17 -I../library/src'
 
 ##########################################
 ##### DO NOT EDIT BELOW THIS LINE ########

@@ -31,14 +31,34 @@ incs = {}
 bins = {}
 md5s_to_update = {}
 
-def run_ps(cmd):
+out_ext = ''
+
+if out_type == 'dll':
+    if platform.system() == 'Windows':
+        cflags += ' -shared'
+        out_ext = '.dll'
+    elif platform.system() == 'Linux':
+        cflags += ' -fPIC -shared'
+        out_ext = '.so'
+elif out_type == 'exe':
+    if platform.system() == 'Windows':
+        out_ext = '.exe'
+    elif platform.system() == 'Linux':
+        out_ext = ''
+
+def run_ps(cmd, print_output=True):
     completed = subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+    if print_output:
+        if(completed.stderr.decode('utf-8') != ''):
+            print(colored('[ERROR] ', 'red'), completed.stderr.decode('utf-8'))
+        if(completed.stdout.decode('utf-8') != ''):
+            print(colored('[INFO] \n', 'green'), completed.stdout.decode('utf-8'))
     return completed
      
 # Saves md5s to file
 def save_md5():
     if platform.system() == 'Windows': 
-        run_ps('Remove-Item md5.txt; New-Item md5.txt')
+        run_ps('Remove-Item md5.txt; New-Item md5.txt', False)
     elif platform.system() == 'Linux':
         os.system('rm md5.txt && touch md5.txt')
     else:
@@ -51,7 +71,7 @@ def save_md5():
         for key in md5s:
             f.write(key + ' ' + md5s[key] + '\n')
     if platform.system() == 'Windows': 
-        run_ps('Remove-Item md5.txt; Rename-Item -Path md5n.txt -NewName md5.txt')
+        run_ps('Remove-Item md5.txt; Rename-Item -Path md5n.txt -NewName md5.txt', False)
     elif platform.system() == 'Linux':
         os.system('rm md5.txt && mv md5n.txt md5.txt')
     else:
@@ -63,7 +83,7 @@ def load_md5():
     if not os.path.exists('md5.txt'):
         print(colored('[INFO] ', 'green'), 'Creating md5.txt')
         if platform.system() == 'Windows': 
-            run_ps('New-Item md5.txt')
+            run_ps('New-Item md5.txt', False)
         elif platform.system() == 'Linux':
             os.system('touch md5.txt')
         else:
@@ -190,7 +210,10 @@ def compile_obj(filepath, obj):
 #links obj files into bin
 def link():
     if not os.path.exists(out_dir):
-        os.system('mkdir ' + out_dir)
+        if platform.system() == 'Windows':
+            run_ps('New-Item ' + out_dir + ' -ItemType Directory')
+        elif platform.system() == 'Linux':
+            os.system('mkdir ' + out_dir)
     if not compiled_obj:
         print(colored('[LOG] ', 'blue') ,'Nothing to be compiled')
         return
@@ -199,7 +222,7 @@ def link():
     for obj in objs:
         objtot += ' ' + objs[obj]
         i += 1
-    cmd = compiler + ' ' + cflags + ' -o ' + out_dir + '/' + out_file + '.' + out_type + objtot + ' ' + libs
+    cmd = compiler + ' ' + cflags + ' -o ' + out_dir + '/' + out_file + out_ext + objtot + ' ' + libs
     print(colored('[LOG] ', 'blue') ,cmd)
     error = os.system(cmd)
     if error != 0:
@@ -211,17 +234,17 @@ def link():
 
 def clean():
     if platform.system() == 'Windows':
-        run_ps('Remove-Item bin/*')
-        print(colored('[LOG] ', 'yellow') ,'Removed bin/*')
-        run_ps('Remove-Item obj/*.o')
-        print(colored('[LOG] ', 'yellow') ,'Removed obj/*.o')
+        run_ps('Remove-Item ' + out_dir + '\\' + out_file + out_ext + ' -Force')
+        print(colored('[LOG] ', 'yellow') ,'Cleaned ' + out_dir + '\\' + out_file + out_ext)
+        run_ps('Remove-Item ' + obj_dir + ' -Recurse -Force')
+        print(colored('[LOG] ', 'yellow') ,'Cleaned ' + obj_dir)
         run_ps('Remove-Item md5.txt')
         print(colored('[LOG] ', 'red') ,'Removed md5.txt')
     elif platform.system() == 'Linux':
-        os.system('rm -rf bin/*')
-        print(colored('[LOG] ', 'yellow') ,'Removed bin/*')
-        os.system('rm -rf obj/*.o')
-        print(colored('[LOG] ', 'yellow') ,'Removed obj/*.o')
+        os.system('rm -rf ' + out_dir + '/' + out_file + out_ext)
+        print(colored('[LOG] ', 'yellow') ,'Cleaned ' + out_dir + '/' + out_file + out_ext)
+        os.system('rm -rf obj')
+        print(colored('[LOG] ', 'yellow') ,'Cleaned ' + obj_dir)
         os.system('rm -rf md5.txt')
         print(colored('[LOG] ', 'red') ,'Removed md5.txt')
     else:
@@ -268,14 +291,17 @@ def main():
     elif mode == 'clean':
         clean()
     elif mode == 'run':
+        if out_type == 'dll':
+            print(colored('[ERROR] ', 'red'), 'Cannot run DLL')
+            exit(1)
         load_md5()
         build_objects(src_dir, obj_dir)
         link()
         print('=======PROGRAM OUTPUT========')
         if platform.system() == 'Windows':
-            os.system(out_dir + '\\' + out_file + '.' + out_type)
+            run_ps(out_dir + '/' + out_file + out_ext)
         elif platform.system() == 'Linux':
-            os.system(out_dir + '/' + out_file + '.' + out_type)
+            os.system(out_dir + '/' + out_file + out_ext)
     elif mode == 'rebuild':
         clean()
         load_md5()
@@ -289,4 +315,3 @@ def main():
 
 if __name__=='__main__':
     main()
-
