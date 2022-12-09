@@ -214,7 +214,12 @@ def link():
             run_ps('New-Item ' + out_dir + ' -ItemType Directory')
         elif platform.system() == 'Linux':
             os.system('mkdir ' + out_dir)
-    if not compiled_obj:
+    if not os.path.exists(out_dir + '/' + out_file + out_ext):
+        up_exec = True
+    else:
+        up_exec = check_file_updated(out_dir + '/' + out_file + out_ext)
+
+    if not compiled_obj and not up_exec:
         print(colored('[LOG] ', 'blue') ,'Nothing to be compiled')
         return
     objtot = ''
@@ -227,10 +232,21 @@ def link():
     error = os.system(cmd)
     if error != 0:
         print(colored('[ERROR] ', 'red'), 'Error linking')
+        md5s[out_dir + '/' + out_file + out_ext] = '0'
+        save_md5()
         exit(error)
     else:
         print(colored('[INFO] ', 'green'), 'Linking successful')
+        check_file_updated(out_dir + '/' + out_file + out_ext)
         save_md5()
+
+def clean():
+    if platform.system() == 'Windows':
+        run_ps('Remove-Item ' + out_dir + '\\' + out_file + out_ext + ' -Force')
+        print(colored('[LOG] ', 'yellow') ,'Cleaned ' + out_dir + '\\' + out_file + out_ext)
+        run_ps('Remove-Item ' + obj_dir + ' -Recurse -Force')
+        print(colored('[LOG] ', 'yellow') ,'Cleaned ' + obj_dir)
+        run_ps('Remove-Item md5.txt')
 
 def clean():
     if platform.system() == 'Windows':
