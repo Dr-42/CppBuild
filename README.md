@@ -1,5 +1,5 @@
 ## This project has been archived
-Development on this project has discontinued in favour of [builder_cpp](https://github.com/Dr-42/builder-cpp).
+Development on this project has discontinued in favour of [builder_cpp](https://github.com/Dr-42/builder_cpp).
 Please look into that project for active support. It has a similar flavour to it.
 
 Simple build tool that intelligently infers the include subdirectories and builds the project for you
